@@ -34,7 +34,6 @@ def health_check():
     """A simple health check endpoint."""
     return {"status": "ok", "message": "Whisper ASR service is running."}
 
-# MODIFIED LINE: The endpoint route is updated here
 @app.post("/audio/transcriptions")
 async def transcribe_audio(file: UploadFile = File(...)):
     """
@@ -56,7 +55,10 @@ async def transcribe_audio(file: UploadFile = File(...)):
         logger.info(f"Transcribing file: {file.filename}")
         result = pipe(audio_bytes)
         transcription = result["text"].strip()
-        logger.info("Transcription successful.")
+        
+        # MODIFIED LINE: Log the actual transcribed text
+        logger.info(f"Transcription result: \"{transcription}\"")
+        
         return {"filename": file.filename, "transcription": transcription}
     except Exception as e:
         logger.error(f"Error during transcription: {e}")
