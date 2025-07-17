@@ -15,12 +15,8 @@ app = FastAPI(
 )
 
 # --- Model Loading ---
-# Load the powerful Whisper model once when the server starts.
-# `device_map="auto"` and `torch_dtype` will ensure GPU and FP16 are used if available.
 try:
     logger.info("Loading Whisper model 'openai/whisper-large-v3'...")
-    # Forcing device to "cuda:0" if you have a GPU and want to be explicit
-    # pipe = pipeline("automatic-speech-recognition", model="openai/whisper-large-v3", device="cuda:0")
     pipe = pipeline(
         "automatic-speech-recognition",
         model="openai/whisper-large-v3",
@@ -38,7 +34,8 @@ def health_check():
     """A simple health check endpoint."""
     return {"status": "ok", "message": "Whisper ASR service is running."}
 
-@app.post("/transcribe/")
+# MODIFIED LINE: The endpoint route is updated here
+@app.post("/audio/transcriptions")
 async def transcribe_audio(file: UploadFile = File(...)):
     """
     Transcribes an uploaded audio file.
@@ -51,14 +48,12 @@ async def transcribe_audio(file: UploadFile = File(...)):
             detail="Model is not available. Please check server logs."
         )
 
-    # The pipeline works with raw bytes. We read the uploaded file into memory.
     audio_bytes = await file.read()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio file uploaded.")
 
     try:
         logger.info(f"Transcribing file: {file.filename}")
-        # The pipeline handles decoding and resampling automatically.
         result = pipe(audio_bytes)
         transcription = result["text"].strip()
         logger.info("Transcription successful.")
@@ -70,7 +65,5 @@ async def transcribe_audio(file: UploadFile = File(...)):
             detail=f"An error occurred during transcription: {str(e)}"
         )
 
-# To run the app directly (for development):
-# python main.py
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8002)
